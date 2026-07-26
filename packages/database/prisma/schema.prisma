@@ -1,0 +1,764 @@
+// Honey Garden CRM - Database Schema
+// PostgreSQL + Prisma ORM
+
+generator client {
+  provider = "prisma-client-js"
+  output   = "../generated/client"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ---------------------------------------------------------------------------
+// ORGANIZZAZIONE / TENANT
+// ---------------------------------------------------------------------------
+
+model Organization {
+  id        String   @id @default(cuid())
+  name      String
+  slug      String   @unique
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  deletedAt DateTime?
+
+  users         User[]
+  roles         Role[]
+  creators      Creator[]
+  fans          Fan[]
+  auditLogs     AuditLog[]
+  apiKeys       ApiKey[]
+  automations   Automation[]
+  notifications Notification[]
+  commissionRules CommissionRule[]
+
+  @@map("organizations")
+}
+
+// ---------------------------------------------------------------------------
+// RBAC: RUOLI E PERMESSI
+// ---------------------------------------------------------------------------
+
+model Permission {
+  id          String @id @default(cuid())
+  key         String @unique // es. "creators.manage"
+  description String
+
+  roles RolePermission[]
+
+  @@map("permissions")
+}
+
+model Role {
+  id             String   @id @default(cuid())
+  organizationId String
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  key            String   // OWNER, ADMIN, CHATTER_MANAGER, CHATTER, oppure chiave custom
+  name           String
+  isSystem       Boolean  @default(false) // ruoli di sistema non eliminabili
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  permissions RolePermission[]
+  users       User[]
+
+  @@unique([organizationId, key])
+  @@map("roles")
+}
+
+model RolePermission {
+  roleId       String
+  permissionId String
+  role         Role       @relation(fields: [roleId], references: [id], onDelete: Cascade)
+  permission   Permission @relation(fields: [permissionId], references: [id], onDelete: Cascade)
+
+  @@id([roleId, permissionId])
+  @@map("role_permissions")
+}
+
+// ---------------------------------------------------------------------------
+// UTENTI / AUTENTICAZIONE
+// ---------------------------------------------------------------------------
+
+enum UserStatus {
+  ACTIVE
+  SUSPENDED
+  DISABLED
+  PENDING
+}
+
+model User {
+  id                 String     @id @default(cuid())
+  organizationId     String
+  organization       Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  email              String
+  passwordHash       String
+  firstName          String
+  lastName           String
+  avatarUrl          String?
+  status             UserStatus @default(ACTIVE)
+  roleId             String
+  role               Role       @relation(fields: [roleId], references: [id])
+  isOwner            Boolean    @default(false)
+  emailVerifiedAt    DateTime?
+  twoFactorEnabled   Boolean    @default(false)
+  twoFactorSecret    String?    // cifrato
+  failedLoginCount   Int        @default(0)
+  lockedUntil        DateTime?
+  lastLoginAt        DateTime?
+  hourlyRate         Decimal?   @db.Decimal(10, 2)
+  commissionPercent  Decimal?   @db.Decimal(5, 2)
+  createdAt          DateTime   @default(now())
+  updatedAt          DateTime   @updatedAt
+  deletedAt          DateTime?
+
+  sessions            Session[]
+  passwordResetTokens PasswordResetToken[]
+  creatorAssignments  CreatorAssignment[]
+  auditLogs           AuditLog[]
+  shiftAssignments    ShiftAssignment[]
+  messagesSent        Message[] @relation("MessageSender")
+  notes               CreatorNote[]
+
+  @@unique([organizationId, email])
+  @@map("users")
+}
+
+model Session {
+  id              String   @id @default(cuid())
+  userId          String
+  user            User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  refreshTokenHash String
+  userAgent       String?
+  ipAddress       String?
+  deviceLabel     String?
+  createdAt       DateTime @default(now())
+  expiresAt       DateTime
+  revokedAt       DateTime?
+
+  @@map("sessions")
+}
+
+model PasswordResetToken {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  tokenHash String
+  expiresAt DateTime
+  usedAt    DateTime?
+  createdAt DateTime @default(now())
+
+  @@map("password_reset_tokens")
+}
+
+model ApiKey {
+  id             String   @id @default(cuid())
+  organizationId String
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  label          String
+  keyPrefix      String
+  keyHash        String
+  scopes         String[]
+  createdAt      DateTime @default(now())
+  revokedAt      DateTime?
+
+  @@map("api_keys")
+}
+
+// ---------------------------------------------------------------------------
+// CREATOR
+// ---------------------------------------------------------------------------
+
+enum CreatorStatus {
+  ACTIVE
+  INACTIVE
+  SUSPENDED
+  ONBOARDING
+}
+
+model Creator {
+  id             String        @id @default(cuid())
+  organizationId String
+  organization   Organization  @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  stageName      String
+  firstName      String?
+  lastName       String?
+  birthDate      DateTime?
+  language       String        @default("it")
+  country        String?
+  timezone       String        @default("Europe/Rome")
+  bio            String?
+  avatarUrl      String?
+  status         CreatorStatus @default(ONBOARDING)
+  isDemo         Boolean       @default(false)
+  tags           String[]
+  createdAt      DateTime      @default(now())
+  updatedAt      DateTime      @updatedAt
+  deletedAt      DateTime?
+
+  socialLinks    CreatorSocialLink[]
+  accounts       OnlyFansAccount[]
+  assignments    CreatorAssignment[]
+  pricing        CreatorPricing?
+  personality    CreatorPersonality?
+  aiProfile      AIProfile?
+  documents      Document[]
+  notes          CreatorNote[]
+  mediaAssets    MediaAsset[]
+  conversations  Conversation[]
+  fanLinks       FanCreatorLink[]
+
+  @@map("creators")
+}
+
+model CreatorSocialLink {
+  id        String  @id @default(cuid())
+  creatorId String
+  creator   Creator @relation(fields: [creatorId], references: [id], onDelete: Cascade)
+  platform  String // instagram, tiktok, telegram, x, reddit, clapper, facebook, other
+  url       String
+
+  @@map("creator_social_links")
+}
+
+enum AssignmentRole {
+  CHATTER
+  CHATTER_MANAGER
+  PUBLISHER
+  EDITOR
+}
+
+model CreatorAssignment {
+  id         String         @id @default(cuid())
+  creatorId  String
+  creator    Creator        @relation(fields: [creatorId], references: [id], onDelete: Cascade)
+  userId     String
+  user       User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  role       AssignmentRole
+  assignedAt DateTime       @default(now())
+
+  @@unique([creatorId, userId, role])
+  @@map("creator_assignments")
+}
+
+model CreatorPricing {
+  id                String  @id @default(cuid())
+  creatorId         String  @unique
+  creator           Creator @relation(fields: [creatorId], references: [id], onDelete: Cascade)
+  subscriptionPrice Decimal? @db.Decimal(10, 2)
+  discountPercent   Decimal? @db.Decimal(5, 2)
+  ppvMinPrice       Decimal? @db.Decimal(10, 2)
+  ppvMaxPrice       Decimal? @db.Decimal(10, 2)
+  customPrice       Decimal? @db.Decimal(10, 2)
+  videoPrice        Decimal? @db.Decimal(10, 2)
+  photoPrice        Decimal? @db.Decimal(10, 2)
+  voicePrice        Decimal? @db.Decimal(10, 2)
+  sextingPrice      Decimal? @db.Decimal(10, 2)
+  currency          String   @default("EUR")
+  updatedAt         DateTime @updatedAt
+
+  @@map("creator_pricing")
+}
+
+model CreatorPersonality {
+  id              String   @id @default(cuid())
+  creatorId       String   @unique
+  creator         Creator  @relation(fields: [creatorId], references: [id], onDelete: Cascade)
+  tone            String?
+  lexicon         String?
+  emojis          String[]
+  catchphrases    String[]
+  forbiddenWords  String[]
+  nicknames       String[]
+  interests       String[]
+  backstory       String?
+  privateInfo     String?  // informazioni da non condividere
+  forbiddenTopics String[]
+  updatedAt       DateTime @updatedAt
+
+  @@map("creator_personalities")
+}
+
+model CreatorNote {
+  id        String   @id @default(cuid())
+  creatorId String
+  creator   Creator  @relation(fields: [creatorId], references: [id], onDelete: Cascade)
+  authorId  String
+  author    User     @relation(fields: [authorId], references: [id])
+  body      String
+  createdAt DateTime @default(now())
+
+  @@map("creator_notes")
+}
+
+model Document {
+  id         String   @id @default(cuid())
+  creatorId  String
+  creator    Creator  @relation(fields: [creatorId], references: [id], onDelete: Cascade)
+  type       String   // contratto, liberatoria, nda, fiscale, altro
+  title      String
+  fileUrl    String
+  expiresAt  DateTime?
+  createdAt  DateTime @default(now())
+
+  @@map("documents")
+}
+
+// ---------------------------------------------------------------------------
+// ACCOUNT ONLYFANS (ARCHITETTURA A PROVIDER)
+// ---------------------------------------------------------------------------
+
+enum ProviderKey {
+  MANUAL
+  CSV_IMPORT
+  PROVIDER_API_1
+  PROVIDER_API_2
+}
+
+enum ConnectionStatus {
+  NOT_CONFIGURED
+  PENDING
+  CONNECTED
+  ERROR
+  DISCONNECTED
+}
+
+enum SyncStatus {
+  NEVER_SYNCED
+  SYNCING
+  SUCCESS
+  FAILED
+}
+
+model OnlyFansAccount {
+  id                 String           @id @default(cuid())
+  creatorId          String
+  creator            Creator          @relation(fields: [creatorId], references: [id], onDelete: Cascade)
+  displayName        String
+  username           String
+  externalAccountId  String?
+  profileUrl         String?
+  provider           ProviderKey      @default(MANUAL)
+  connectionStatus   ConnectionStatus @default(NOT_CONFIGURED)
+  syncStatus         SyncStatus       @default(NEVER_SYNCED)
+  currency           String           @default("EUR")
+  timezone           String           @default("Europe/Rome")
+  lastError          String?
+  lastSyncedAt       DateTime?
+  permissionsGranted String[]
+  // credenziali cifrate (AES-256-GCM) - mai in chiaro
+  encryptedCredentials String?
+  credentialsIv        String?
+  credentialsAuthTag   String?
+  createdAt          DateTime         @default(now())
+  updatedAt          DateTime         @updatedAt
+
+  fanLinks      FanCreatorLink[]
+  syncLogs      SyncLog[]
+  conversations Conversation[]
+  transactions  Transaction[]
+  mediaAssets   MediaAsset[]
+
+  @@unique([creatorId, username])
+  @@map("onlyfans_accounts")
+}
+
+model SyncLog {
+  id         String    @id @default(cuid())
+  accountId  String
+  account    OnlyFansAccount @relation(fields: [accountId], references: [id], onDelete: Cascade)
+  operation  String // syncProfile, syncFans, syncMessages, syncTransactions, syncSubscriptions
+  status     SyncStatus
+  message    String?
+  startedAt  DateTime  @default(now())
+  finishedAt DateTime?
+
+  @@map("sync_logs")
+}
+
+// ---------------------------------------------------------------------------
+// FAN
+// ---------------------------------------------------------------------------
+
+model Fan {
+  id             String   @id @default(cuid())
+  organizationId String
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  externalId     String?
+  username       String
+  displayName    String?
+  avatarUrl      String?
+  email          String?
+  language       String?
+  country        String?
+  timezone       String?
+  tags           String[]
+  segment        String?
+  vipLevel       String   @default("none")
+  churnScore     Decimal? @db.Decimal(5, 2)
+  purchaseScore  Decimal? @db.Decimal(5, 2)
+  lifetimeValue  Decimal  @default(0) @db.Decimal(12, 2)
+  notes          String?
+  isBlacklisted  Boolean  @default(false)
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  creatorLinks  FanCreatorLink[]
+  conversations Conversation[]
+  transactions  Transaction[]
+  aiMemories    AIMemory[]
+
+  @@unique([organizationId, username])
+  @@map("fans")
+}
+
+model FanCreatorLink {
+  id                String   @id @default(cuid())
+  fanId             String
+  fan               Fan      @relation(fields: [fanId], references: [id], onDelete: Cascade)
+  creatorId         String
+  creator           Creator  @relation(fields: [creatorId], references: [id], onDelete: Cascade)
+  accountId         String
+  account           OnlyFansAccount @relation(fields: [accountId], references: [id], onDelete: Cascade)
+  subscriptionStatus String  @default("none") // active, expired, renew_off, free
+  renewOn           Boolean  @default(false)
+  subscribedAt      DateTime?
+  expiresAt         DateTime?
+  totalSpent        Decimal  @default(0) @db.Decimal(12, 2)
+  spentLast30Days   Decimal  @default(0) @db.Decimal(12, 2)
+  lastActivityAt    DateTime?
+  assignedChatterId String?
+
+  @@unique([fanId, creatorId, accountId])
+  @@map("fan_creator_links")
+}
+
+// ---------------------------------------------------------------------------
+// CONVERSAZIONI / MESSAGGI
+// ---------------------------------------------------------------------------
+
+enum MessageDirection {
+  INBOUND
+  OUTBOUND
+}
+
+enum MessageStatus {
+  DRAFT
+  SCHEDULED
+  SENT
+  DELIVERED
+  READ
+  FAILED
+}
+
+model Conversation {
+  id          String   @id @default(cuid())
+  creatorId   String
+  creator     Creator  @relation(fields: [creatorId], references: [id], onDelete: Cascade)
+  accountId   String
+  account     OnlyFansAccount @relation(fields: [accountId], references: [id], onDelete: Cascade)
+  fanId       String
+  fan         Fan      @relation(fields: [fanId], references: [id], onDelete: Cascade)
+  assignedUserId String?
+  priority    String   @default("normal")
+  isVip       Boolean  @default(false)
+  unreadCount Int      @default(0)
+  lastMessageAt DateTime?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  messages Message[]
+
+  @@unique([creatorId, accountId, fanId])
+  @@map("conversations")
+}
+
+model Message {
+  id             String            @id @default(cuid())
+  conversationId String
+  conversation   Conversation      @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+  direction      MessageDirection
+  status         MessageStatus     @default(SENT)
+  body           String?
+  mediaUrl       String?
+  price          Decimal?          @db.Decimal(10, 2)
+  isPpv          Boolean           @default(false)
+  isTip          Boolean           @default(false)
+  isAiGenerated  Boolean           @default(false)
+  aiSuggestionAccepted Boolean?
+  senderUserId   String?
+  sender         User?             @relation("MessageSender", fields: [senderUserId], references: [id])
+  scheduledFor   DateTime?
+  createdAt      DateTime          @default(now())
+
+  @@map("messages")
+}
+
+// ---------------------------------------------------------------------------
+// TRANSAZIONI
+// ---------------------------------------------------------------------------
+
+enum TransactionType {
+  SUBSCRIPTION
+  RENEWAL
+  PPV
+  TIP
+  CUSTOM
+  CHARGEBACK
+  REFUND
+}
+
+model Transaction {
+  id          String          @id @default(cuid())
+  accountId   String
+  account     OnlyFansAccount @relation(fields: [accountId], references: [id], onDelete: Cascade)
+  fanId       String
+  fan         Fan             @relation(fields: [fanId], references: [id], onDelete: Cascade)
+  type        TransactionType
+  amountGross Decimal         @db.Decimal(12, 2)
+  amountNet   Decimal         @db.Decimal(12, 2)
+  feeAmount   Decimal         @default(0) @db.Decimal(12, 2)
+  currency    String          @default("EUR")
+  chatterUserId String?
+  occurredAt  DateTime        @default(now())
+  createdAt   DateTime        @default(now())
+
+  @@map("transactions")
+}
+
+// ---------------------------------------------------------------------------
+// AI
+// ---------------------------------------------------------------------------
+
+enum AIMode {
+  DISABLED
+  SUGGESTION
+  COPILOT
+  SEMI_AUTO
+}
+
+model AIProfile {
+  id             String  @id @default(cuid())
+  creatorId      String  @unique
+  creator        Creator @relation(fields: [creatorId], references: [id], onDelete: Cascade)
+  mode           AIMode  @default(DISABLED)
+  provider       String? // es. "openai", "anthropic" - null = non configurato
+  model          String?
+  temperature    Decimal @default(0.7) @db.Decimal(3, 2)
+  systemPrompt   String?
+  maxTokens      Int     @default(400)
+  monthlyBudget  Decimal? @db.Decimal(10, 2)
+  blacklist      String[]
+  whitelist      String[]
+  upsellFrequency String  @default("moderata")
+  aggressiveness  Int     @default(2) // 1-5
+  autoSendEnabled Boolean @default(false)
+  updatedAt      DateTime @updatedAt
+
+  @@map("ai_profiles")
+}
+
+model AIMemory {
+  id        String   @id @default(cuid())
+  fanId     String
+  fan       Fan      @relation(fields: [fanId], references: [id], onDelete: Cascade)
+  key       String   // es. "interesse", "promessa", "soprannome"
+  value     String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("ai_memories")
+}
+
+model AIUsageLog {
+  id           String   @id @default(cuid())
+  creatorId    String?
+  provider     String?
+  model        String?
+  promptTokens Int      @default(0)
+  completionTokens Int  @default(0)
+  costEstimate Decimal  @default(0) @db.Decimal(10, 4)
+  wasAccepted  Boolean?
+  createdAt    DateTime @default(now())
+
+  @@map("ai_usage_logs")
+}
+
+// ---------------------------------------------------------------------------
+// TURNI
+// ---------------------------------------------------------------------------
+
+model Shift {
+  id          String   @id @default(cuid())
+  organizationId String
+  startsAt    DateTime
+  endsAt      DateTime
+  isRecurring Boolean  @default(false)
+  notes       String?
+  createdAt   DateTime @default(now())
+
+  assignments ShiftAssignment[]
+
+  @@map("shifts")
+}
+
+model ShiftAssignment {
+  id           String    @id @default(cuid())
+  shiftId      String
+  shift        Shift     @relation(fields: [shiftId], references: [id], onDelete: Cascade)
+  userId       String
+  user         User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  clockInAt    DateTime?
+  clockOutAt   DateTime?
+  handoffNotes String?
+  createdAt    DateTime  @default(now())
+
+  @@map("shift_assignments")
+}
+
+// ---------------------------------------------------------------------------
+// FINANZE / COMMISSIONI
+// ---------------------------------------------------------------------------
+
+model CommissionRule {
+  id             String   @id @default(cuid())
+  organizationId String
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  scope          String   // "role", "creator", "account", "sale_type"
+  scopeRefId     String?
+  percent        Decimal  @db.Decimal(5, 2)
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  @@map("commission_rules")
+}
+
+// ---------------------------------------------------------------------------
+// MEDIA VAULT
+// ---------------------------------------------------------------------------
+
+enum MediaType {
+  PHOTO
+  VIDEO
+  AUDIO
+  VOICE
+}
+
+enum MediaVisibility {
+  PUBLIC
+  PREMIUM
+  PPV
+  CUSTOM
+}
+
+model MediaAsset {
+  id          String          @id @default(cuid())
+  creatorId   String
+  creator     Creator         @relation(fields: [creatorId], references: [id], onDelete: Cascade)
+  accountId   String?
+  account     OnlyFansAccount? @relation(fields: [accountId], references: [id])
+  type        MediaType
+  visibility  MediaVisibility @default(PREMIUM)
+  storageKey  String
+  fileName    String
+  mimeType    String
+  sizeBytes   Int
+  tags        String[]
+  price       Decimal?        @db.Decimal(10, 2)
+  revenueGenerated Decimal    @default(0) @db.Decimal(12, 2)
+  createdAt   DateTime        @default(now())
+
+  @@map("media_assets")
+}
+
+// ---------------------------------------------------------------------------
+// AUTOMAZIONI
+// ---------------------------------------------------------------------------
+
+enum AutomationTrigger {
+  WELCOME_MESSAGE
+  RENEWAL_REMINDER
+  EXPIRATION
+  FOLLOW_UP
+  INACTIVE_FAN
+  NEW_SUBSCRIBER
+  PPV_PURCHASED
+  TIP_RECEIVED
+  BIRTHDAY
+  RENEW_OFF
+  ACCOUNT_DISCONNECTED
+  SYNC_FAILED
+}
+
+model Automation {
+  id             String            @id @default(cuid())
+  organizationId String
+  organization   Organization      @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  name           String
+  trigger        AutomationTrigger
+  conditions     Json?
+  actions        Json
+  isActive       Boolean           @default(false)
+  createdAt      DateTime          @default(now())
+  updatedAt      DateTime          @updatedAt
+
+  logs AutomationLog[]
+
+  @@map("automations")
+}
+
+model AutomationLog {
+  id           String     @id @default(cuid())
+  automationId String
+  automation   Automation @relation(fields: [automationId], references: [id], onDelete: Cascade)
+  status       String     // success, error, skipped
+  message      String?
+  createdAt    DateTime   @default(now())
+
+  @@map("automation_logs")
+}
+
+// ---------------------------------------------------------------------------
+// NOTIFICHE
+// ---------------------------------------------------------------------------
+
+model Notification {
+  id             String   @id @default(cuid())
+  organizationId String
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  userId         String?
+  type           String
+  title          String
+  body           String?
+  channel        String   @default("in_app") // in_app, email, push, webhook, telegram
+  readAt         DateTime?
+  createdAt      DateTime @default(now())
+
+  @@map("notifications")
+}
+
+// ---------------------------------------------------------------------------
+// AUDIT LOG (immutabile)
+// ---------------------------------------------------------------------------
+
+model AuditLog {
+  id             String   @id @default(cuid())
+  organizationId String
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  userId         String?
+  user           User?    @relation(fields: [userId], references: [id])
+  action         String
+  resource       String
+  resourceId     String?
+  ipAddress      String?
+  userAgent      String?
+  previousValue  Json?
+  newValue       Json?
+  result         String   @default("success") // success, failure
+  errorMessage   String?
+  createdAt      DateTime @default(now())
+
+  @@map("audit_logs")
+}

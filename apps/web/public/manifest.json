@@ -1,0 +1,13 @@
+{
+  "name": "Honey Garden CRM",
+  "short_name": "Honey Garden",
+  "description": "Gestionale multi-tenant per agenzie che gestiscono account creator OnlyFans",
+  "start_url": "/dashboard",
+  "display": "standalone",
+  "background_color": "#0d0d12",
+  "theme_color": "#7c3aed",
+  "icons": [
+    { "src": "/icons/icon-192.png", "sizes": "192x192", "type": "image/png" },
+    { "src": "/icons/icon-512.png", "sizes": "512x512", "type": "image/png" }
+  ]
+}

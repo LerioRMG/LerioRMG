@@ -1,0 +1,32 @@
+{
+  "name": "honey-garden-crm",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Honey Garden CRM - gestionale multi-tenant per agenzie OnlyFans",
+  "workspaces": [
+    "apps/*",
+    "packages/*"
+  ],
+  "scripts": {
+    "dev": "npm run dev --workspace=@honey-garden/api & npm run dev --workspace=@honey-garden/web & wait",
+    "dev:api": "npm run dev --workspace=@honey-garden/api",
+    "dev:web": "npm run dev --workspace=@honey-garden/web",
+    "build": "npm run build --workspace=@honey-garden/database && npm run build --workspace=@honey-garden/api && npm run build --workspace=@honey-garden/web",
+    "start": "npm run start --workspace=@honey-garden/api",
+    "test": "npm run test --workspace=@honey-garden/api",
+    "test:e2e": "npm run test:e2e --workspace=@honey-garden/api",
+    "test:all": "npm run test && npm run test:e2e",
+    "lint": "npm run lint --workspace=@honey-garden/api && npm run lint --workspace=@honey-garden/web",
+    "db:generate": "npm run db:generate --workspace=@honey-garden/database",
+    "db:migrate": "npm run db:migrate --workspace=@honey-garden/database",
+    "db:migrate:deploy": "npm run db:migrate:deploy --workspace=@honey-garden/database",
+    "db:seed": "npm run db:seed --workspace=@honey-garden/database",
+    "db:studio": "npm run db:studio --workspace=@honey-garden/database"
+  },
+  "devDependencies": {
+    "typescript": "^5.5.4"
+  },
+  "engines": {
+    "node": ">=20.0.0"
+  }
+}
