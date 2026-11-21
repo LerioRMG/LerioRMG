@@ -36,7 +36,7 @@ document.title=(code==="it"?"PEACHUB | Magazine, creator e cultura digitale":cod
 }finally{applying=false}
 }
 function setLang(next){if(!names[next])return;code=next;localStorage.setItem("peachub-lang",next);const url=new URL(location.href);if(next==="it")url.searchParams.delete("lang");else url.searchParams.set("lang",next);history.replaceState(null,"",url);apply(document)}
-function mount(){let parent=document.querySelector(".actions");if(!parent)return;let select=document.createElement("select");select.id="peach-language";select.className="language-select";select.setAttribute("aria-label","Select language");select.innerHTML=Object.entries(names).map(([value,name])=>'<option value="'+value+'">'+name+'</option>').join("");select.value=code;select.addEventListener("change",()=>setLang(select.value));parent.prepend(select);apply(document)}
+function mount(){let parent=document.querySelector(".actions")||document.querySelector("header");if(!parent)return;let select=document.createElement("select");select.id="peach-language";select.className="language-select";select.setAttribute("aria-label","Select language");select.innerHTML=Object.entries(names).map(([value,name])=>'<option value="'+value+'">'+name+'</option>').join("");select.value=code;select.addEventListener("change",()=>setLang(select.value));parent.prepend(select);apply(document)}
 window.PeachI18n={apply,setLang,getLang:()=>code};
 if(document.readyState==="loading")document.addEventListener("DOMContentLoaded",mount);else mount();
 })();
