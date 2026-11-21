@@ -1,11 +1,11 @@
 (function(){
 "use strict";
 const photos=[
-{src:"https://fanslistitalia.it/uploads/gallery/5641049b735c4d841fe72421.jpg",alt:"Sara Peach, fotografia 1 dalla galleria FansList"},
-{src:"https://fanslistitalia.it/uploads/gallery/370cf3e5d3030e8dfac32b9a.jpg",alt:"Sara Peach, fotografia 2 dalla galleria FansList"},
-{src:"https://fanslistitalia.it/uploads/gallery/0ba44f358afd98da3f39e401.jpg",alt:"Sara Peach, fotografia 3 dalla galleria FansList"},
-{src:"https://fanslistitalia.it/uploads/gallery/0456556cd14fbfb02f24ec06.jpg",alt:"Sara Peach, fotografia 4 dalla galleria FansList"},
-{src:"https://fanslistitalia.it/uploads/gallery/fa9174752e14433c54847af1.jpg",alt:"Sara Peach, fotografia 5 dalla galleria FansList"}
+{src:"https://fanslistitalia.it/uploads/gallery/5641049b735c4d841fe72421.jpg",alt:"Sara Peach, fotografia 1"},
+{src:"https://fanslistitalia.it/uploads/gallery/370cf3e5d3030e8dfac32b9a.jpg",alt:"Sara Peach, fotografia 2"},
+{src:"https://fanslistitalia.it/uploads/gallery/0ba44f358afd98da3f39e401.jpg",alt:"Sara Peach, fotografia 3"},
+{src:"https://fanslistitalia.it/uploads/gallery/0456556cd14fbfb02f24ec06.jpg",alt:"Sara Peach, fotografia 4"},
+{src:"https://fanslistitalia.it/uploads/gallery/fa9174752e14433c54847af1.jpg",alt:"Sara Peach, fotografia 5"}
 ];
 const $=selector=>document.querySelector(selector);
 const gallery=$("#sara-gallery"),modal=$("#sara-lightbox"),photo=$("#sara-lightbox-image"),counter=$("#sara-lightbox-count");
@@ -13,6 +13,8 @@ if(!gallery||!modal)return;
 let index=0,previousFocus=null,touchX=null;
 $("#photo-total").textContent=String(photos.length);
 gallery.innerHTML=photos.map((p,i)=>'<button type="button" data-photo="'+i+'" aria-label="Apri fotografia '+(i+1)+' di '+photos.length+'"><img src="'+p.src+'" alt="'+p.alt+'" loading="'+(i<2?"eager":"lazy")+'" referrerpolicy="no-referrer"></button>').join("");
+gallery.querySelectorAll("img").forEach(img=>{img.addEventListener("error",()=>{const button=img.closest("button");if(button){button.hidden=true;button.setAttribute("aria-hidden","true")}},{once:true})});
+photo.addEventListener("error",()=>{photo.alt="Immagine temporaneamente non disponibile";photo.removeAttribute("src")});
 function show(i){index=(i+photos.length)%photos.length;photo.src=photos[index].src;photo.alt=photos[index].alt;counter.textContent=(index+1)+" / "+photos.length;}
 function open(i){previousFocus=document.activeElement;show(i);modal.hidden=false;document.body.style.overflow="hidden";modal.querySelector(".lightbox-close").focus();}
 function close(){modal.hidden=true;photo.removeAttribute("src");document.body.style.overflow="";previousFocus?.focus();}
