@@ -29,7 +29,7 @@ else node.nodeValue=original;
 }
 for(const el of root.querySelectorAll?.("[placeholder]")||[]){const original=el.dataset.originalPlaceholder||el.getAttribute("placeholder");el.dataset.originalPlaceholder=original;el.placeholder=translate(original)||original}
 const old=document.getElementById("translation-notice");if(old)old.remove();
-if(code!=="it"&&code!=="en"&&code!=="es"&&code!=="es-419"){
+if(code!=="it"){
 const notice=document.createElement("div");notice.id="translation-notice";notice.className="translation-note";notice.textContent=translations[code]["Contenuti editoriali disponibili in italiano."];document.querySelector("#app")?.prepend(notice)
 }
 document.title=(code==="it"?"PEACHUB | Magazine, creator e cultura digitale":code==="en"?"PEACHUB | Creator magazine and digital culture":code==="es"||code==="es-419"?"PEACHUB | Revista de creadoras y cultura digital":"PEACHUB | Magazine");
