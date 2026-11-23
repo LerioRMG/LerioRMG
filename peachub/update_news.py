@@ -8,7 +8,8 @@ web=Path('/var/www/peachub')
 if os.geteuid()!=0: raise SystemExit('Esegui come root.')
 def digest(p):return subprocess.check_output(['git','hash-object',str(p)],text=True).strip()
 expected='9cd4ca87db140f92c4924f0777066350167c3710'
-files=[Path('index.html')]+sorted(p.relative_to(src) for p in (src/'articoli').glob('*/index.html'))+sorted(p.relative_to(src) for p in (src/'media/news').glob('*.svg'))
+slugs=['anissa-kate-nuovo-film-reality-junkies','jessi-rae-debutto-tushy-julia-grandi','xhamster-awards-2026-vincitori','xma-2027-nomination-film-porno','femdom-awards-2026-rachel-rampage']
+files=[Path('index.html')]+[Path('articoli')/slug/'index.html' for slug in slugs]+[Path('media/news')/(slug+'.svg') for slug in slugs]
 if len(files)!=11: raise SystemExit('Pacchetto incompleto: nessuna modifica effettuata.')
 changes=[]
 for rel in files:
