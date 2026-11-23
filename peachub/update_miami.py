@@ -19,8 +19,8 @@ for target in pages:
  add=('' if css in text else css)+('' if js in text else js)
  if add:
   idx=text.lower().index('</head>');changes.append((target,original,(text[:idx]+add+text[idx:]).encode('utf-8')))
-old_theme={'miami.css':('945ebb3ae45d941060a389f7dd18427f9e58a6bf','dea244ca75c97fe4ce7f1eca5da51cf47e2e2b24'),'miami.js':('5284c746c3e8d4fe6a6144e3ec24a27640a13575','82de60e04221c91c595714c1a2d138f0d80dfa23'),'palm.svg':('d42941ae064b0ce6792959c09e3db6d671068b34','bd084659395af5e480318e26ddd4413fa92fce33'),'palm-background.webp':()}
-for name in ('miami.css','miami.js','palm.svg','palm-background.webp'):
+old_theme={'miami.css':('945ebb3ae45d941060a389f7dd18427f9e58a6bf','dea244ca75c97fe4ce7f1eca5da51cf47e2e2b24','8e78e8e86e2457ac5c9e10a0412c0c2eb4534572'),'miami.js':('5284c746c3e8d4fe6a6144e3ec24a27640a13575','82de60e04221c91c595714c1a2d138f0d80dfa23'),'palm.svg':('d42941ae064b0ce6792959c09e3db6d671068b34','bd084659395af5e480318e26ddd4413fa92fce33'),'palm-background.webp':('ce46a26a0bea9444d2150920903fdc18b0055e6b',),'gta-theme.mp3':()}
+for name in ('miami.css','miami.js','palm.svg','palm-background.webp','gta-theme.mp3'):
  source=SRC/'miami'/name;target=WEB/'miami'/name
  if not source.is_file():raise SystemExit('File mancante: '+str(source)+'. Nessuna modifica effettuata.')
  data=source.read_bytes();original=target.read_bytes() if target.is_file() else None
