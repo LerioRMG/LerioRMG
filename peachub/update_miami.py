@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """Add reversible styling to the existing site without replacing its pages."""
-import os, shutil, tempfile
+import os, shutil, tempfile, subprocess
 from pathlib import Path
 from datetime import datetime
 SRC=Path(__file__).resolve().parent
@@ -19,12 +19,13 @@ for target in pages:
  add=('' if css in text else css)+('' if js in text else js)
  if add:
   idx=text.lower().index('</head>');changes.append((target,original,(text[:idx]+add+text[idx:]).encode('utf-8')))
+old_theme={'miami.css':'945ebb3ae45d941060a389f7dd18427f9e58a6bf','miami.js':'5284c746c3e8d4fe6a6144e3ec24a27640a13575','palm.svg':'d42941ae064b0ce6792959c09e3db6d671068b34'}
 for name in ('miami.css','miami.js','palm.svg'):
  source=SRC/'miami'/name;target=WEB/'miami'/name
  if not source.is_file():raise SystemExit('File mancante: '+str(source)+'. Nessuna modifica effettuata.')
  data=source.read_bytes();original=target.read_bytes() if target.is_file() else None
  if target.exists() and (target.is_symlink() or not target.is_file()):raise SystemExit('Percorso non valido: '+str(target))
- if original is not None and original!=data:raise SystemExit('File tema già modificato: '+str(target)+'. Nessuna modifica effettuata.')
+ if original is not None and original!=data and subprocess.check_output(['git','hash-object',str(target)],text=True).strip()!=old_theme[name]:raise SystemExit('File tema già modificato: '+str(target)+'. Nessuna modifica effettuata.')
  if original!=data:changes.append((target,original,data))
 if not changes:raise SystemExit('Tema già installato.')
 backup=Path('/root/backup-peachub-miami')/datetime.now().strftime('%Y%m%d-%H%M%S-%f');backup.mkdir(parents=True,mode=0o700)
