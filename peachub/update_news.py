@@ -8,9 +8,9 @@ web=Path('/var/www/peachub')
 if os.geteuid()!=0: raise SystemExit('Esegui come root.')
 def digest(p):return subprocess.check_output(['git','hash-object',str(p)],text=True).strip()
 expected='9cd4ca87db140f92c4924f0777066350167c3710'
-slugs=['anissa-kate-nuovo-film-reality-junkies','jessi-rae-debutto-tushy-julia-grandi','xhamster-awards-2026-vincitori','xma-2027-nomination-film-porno','femdom-awards-2026-rachel-rampage']
+slugs=['anissa-kate-nuovo-film-reality-junkies','jessi-rae-debutto-tushy-julia-grandi','xhamster-awards-2026-vincitori','xma-2027-nomination-film-porno','femdom-awards-2026-rachel-rampage','video-blacked-lucy-mochi-octavia-red']
 files=[Path('index.html')]+[Path('articoli')/slug/'index.html' for slug in slugs]+[Path('media/news')/(slug+'.svg') for slug in slugs]
-if len(files)!=11: raise SystemExit('Pacchetto incompleto: nessuna modifica effettuata.')
+if len(files)!=13: raise SystemExit('Pacchetto incompleto: nessuna modifica effettuata.')
 changes=[]
 for rel in files:
  source=src/rel;target=web/rel
@@ -19,7 +19,7 @@ for rel in files:
   if not target.is_file():raise SystemExit('Percorso non valido: '+str(target))
   actual=digest(target);new=digest(source)
   if actual==new:continue
-  if str(rel)!='index.html' or actual!=expected:raise SystemExit('File online diverso dalla versione prevista: '+str(target)+'. Nessuna modifica effettuata.')
+  if actual not in {expected if str(rel)=='index.html' else '', {'index.html':'d45be9b0d75e5519f29dbad09a56597ee3a4ab53','articoli/anissa-kate-nuovo-film-reality-junkies/index.html':'44c4a380336e51f24f09efcb19784c5273578850','articoli/xhamster-awards-2026-vincitori/index.html':'cd0aa3a2230c150f93bbf2e4e06bf75077e18c85'}.get(str(rel),'')}: raise SystemExit('File online diverso dalla versione prevista: '+str(target)+'. Nessuna modifica effettuata.')
  changes.append((source,target,rel))
 if not changes:raise SystemExit('Notizie già aggiornate.')
 backup=Path('/root/backup-peachub-news')/datetime.now().strftime('%Y%m%d-%H%M%S-%f');backup.mkdir(parents=True,mode=0o700)
