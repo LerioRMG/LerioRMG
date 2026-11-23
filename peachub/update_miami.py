@@ -19,13 +19,13 @@ for target in pages:
  add=('' if css in text else css)+('' if js in text else js)
  if add:
   idx=text.lower().index('</head>');changes.append((target,original,(text[:idx]+add+text[idx:]).encode('utf-8')))
-old_theme={'miami.css':'945ebb3ae45d941060a389f7dd18427f9e58a6bf','miami.js':'5284c746c3e8d4fe6a6144e3ec24a27640a13575','palm.svg':'d42941ae064b0ce6792959c09e3db6d671068b34'}
-for name in ('miami.css','miami.js','palm.svg'):
+old_theme={'miami.css':('945ebb3ae45d941060a389f7dd18427f9e58a6bf','dea244ca75c97fe4ce7f1eca5da51cf47e2e2b24'),'miami.js':('5284c746c3e8d4fe6a6144e3ec24a27640a13575','82de60e04221c91c595714c1a2d138f0d80dfa23'),'palm.svg':('d42941ae064b0ce6792959c09e3db6d671068b34','bd084659395af5e480318e26ddd4413fa92fce33'),'palm-background.webp':()}
+for name in ('miami.css','miami.js','palm.svg','palm-background.webp'):
  source=SRC/'miami'/name;target=WEB/'miami'/name
  if not source.is_file():raise SystemExit('File mancante: '+str(source)+'. Nessuna modifica effettuata.')
  data=source.read_bytes();original=target.read_bytes() if target.is_file() else None
  if target.exists() and (target.is_symlink() or not target.is_file()):raise SystemExit('Percorso non valido: '+str(target))
- if original is not None and original!=data and subprocess.check_output(['git','hash-object',str(target)],text=True).strip()!=old_theme[name]:raise SystemExit('File tema già modificato: '+str(target)+'. Nessuna modifica effettuata.')
+ if original is not None and original!=data and subprocess.check_output(['git','hash-object',str(target)],text=True).strip() not in old_theme[name]:raise SystemExit('File tema già modificato: '+str(target)+'. Nessuna modifica effettuata.')
  if original!=data:changes.append((target,original,data))
 if not changes:raise SystemExit('Tema già installato.')
 backup=Path('/root/backup-peachub-miami')/datetime.now().strftime('%Y%m%d-%H%M%S-%f');backup.mkdir(parents=True,mode=0o700)
