@@ -21,3 +21,6 @@ body:before,body:after{background-image:url(/miami/palm-real.webp);filter:none;o
 /* Palme più grandi, mantenute ai bordi. */
 body:before,body:after{width:clamp(180px,27vw,480px);height:94dvh;opacity:.36}
 @media(max-width:699px){body:before,body:after{width:clamp(115px,32vw,190px);height:75dvh;opacity:.20}}
+
+/* Cornice tropicale per schermi ampi: sagome grandi e ancorate ai margini. */
+@media(min-width:1000px){body:before,body:after{width:clamp(330px,32vw,600px);height:110dvh;bottom:-10dvh;background-size:auto 100%;background-position:center bottom;opacity:.25}body:before{left:clamp(-110px,-7vw,-55px)}body:after{right:clamp(-110px,-7vw,-55px)}}
