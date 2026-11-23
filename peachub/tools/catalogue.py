@@ -26,12 +26,12 @@ def set_creator_state(db, creator_id, *, active, clips_enabled, boost):
         result=db.execute('UPDATE creators SET active=?, clips_enabled=?, boost=? WHERE id=?', (active, clips_enabled, boost, creator_id))
         if result.rowcount != 1: raise ValueError('Creator non trovata')
 
-def add_media(db, creator_id, path, mime, kind, caption=''):
+def add_media(db, creator_id, path, mime, kind, caption='', publish_clip=False):
     if kind not in ('image','video') or not path or path.startswith('/') or '..' in Path(path).parts:
         raise ValueError('File non valido')
     if not mime.startswith(kind+'/'): raise ValueError('Tipo di file non corrispondente')
     with db:
-        return db.execute('INSERT INTO media(creator_id,path,mime,kind,caption,active,approved) VALUES(?,?,?,?,?,?,?)',(creator_id,path,mime,kind,caption,1 if kind=='image' else 0,1 if kind=='image' else 0)).lastrowid
+        return db.execute('INSERT INTO media(creator_id,path,mime,kind,caption,active,approved,clip_enabled) VALUES(?,?,?,?,?,?,?,?)',(creator_id,path,mime,kind,caption,1,1,int(kind=='video' and publish_clip))).lastrowid
 
 def set_media_state(db, media_id, *, active, approved, clip_enabled):
     if any(type(x) is not bool for x in (active,approved,clip_enabled)): raise ValueError('Stato non valido')

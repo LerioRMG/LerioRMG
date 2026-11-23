@@ -17,6 +17,10 @@ class AdminTest(unittest.TestCase):
     r=c.post('/admin/creator',headers=headers,json={'name':'Ash','slug':'ash','active':True,'clips_enabled':True,'boost':2});self.assertEqual(r.status_code,200);cid=r.json()['id']
     r=c.post('/admin/upload',headers=headers,data={'creator_id':cid},files={'files':('x.mp4',b'\x00\x00\x00\x18ftypisom'+b'0'*40,'video/mp4')});self.assertEqual(r.status_code,200);mid=r.json()['uploaded'][0]
     self.assertEqual(c.get('/api/media/'+str(mid)).status_code,404)
+    self.assertEqual(c.get('/api/creator-video/'+str(mid)).status_code,200)
+    self.assertEqual(c.get('/api/creators').json()[0]['videos'][0]['src'],'/api/creator-video/'+str(mid))
+    self.assertEqual(c.post('/admin/creator/'+str(cid)+'/videos/publish',headers=headers,json={'clips':True}).status_code,200)
+    self.assertEqual(c.get('/api/media/'+str(mid)).status_code,200)
     self.assertEqual(c.post('/admin/media/'+str(mid),headers=headers,json={'active':True,'approved':True,'clip_enabled':True,'caption':'Ciao!', 'tags':'OnlyFanser, Creator'}).status_code,200)
     self.assertEqual(len(c.get('/api/clips').json()),1);self.assertEqual(c.get('/api/clips').json()[0]['tags'],['OnlyFanser','Creator']);self.assertEqual(c.post('/admin/media/'+str(mid),headers=headers,json={'active':True,'approved':True,'clip_enabled':True,'caption':'Aggiornata'}).status_code,200);self.assertEqual(c.get('/api/clips').json()[0]['tags'],['OnlyFanser','Creator']);self.assertEqual(c.get('/api/media/'+str(mid)).status_code,200)
     self.assertEqual(c.get('/api/media/'+str(mid),headers={'Range':'bytes=0-3'}).status_code,206)
@@ -33,6 +37,7 @@ class AdminTest(unittest.TestCase):
     self.assertEqual(len(c.get('/api/creators').json()[0]['images']),2)
     self.assertEqual(c.post('/admin/creator',headers=headers,json={'id':cid,'name':'Ash','slug':'ash','active':False,'clips_enabled':True,'boost':2}).status_code,200)
     self.assertEqual(c.get('/api/image/'+str(img)).status_code,404)
+    self.assertEqual(c.get('/api/creator-video/'+str(mid)).status_code,404)
     self.assertEqual(c.get('/api/clips').json(),[])
     self.assertEqual(c.post('/admin/logout',headers=headers).status_code,204);self.assertEqual(c.get('/admin/data').status_code,401)
 if __name__=='__main__':unittest.main()

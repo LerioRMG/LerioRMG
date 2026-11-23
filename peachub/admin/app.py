@@ -94,7 +94,7 @@ async def save_creator(request:Request):
  return {'id':cid}
 
 @app.post('/admin/upload')
-async def upload(request:Request,creator_id:int=Form(...),files:list[UploadFile]=File(...)):
+async def upload(request:Request,creator_id:int=Form(...),files:list[UploadFile]=File(...),clips_enabled:bool=Form(False)):
  require(request,True)
  if len(files)>20: raise HTTPException(400,'Massimo 20 file per volta')
  MEDIA.mkdir(parents=True,exist_ok=True); uploaded=[]
@@ -109,7 +109,7 @@ async def upload(request:Request,creator_id:int=Form(...),files:list[UploadFile]
       size+=len(chunk)
       if size>MAX_UPLOAD: raise HTTPException(413,'File troppo grande')
       out.write(chunk)
-    media_id=add_media(conn,creator_id,name,mime,kind);uploaded.append(media_id)
+    media_id=add_media(conn,creator_id,name,mime,kind,publish_clip=clips_enabled);uploaded.append(media_id)
    except BaseException: target.unlink(missing_ok=True);raise
    finally: await f.close()
  return {'uploaded':uploaded}
@@ -120,6 +120,15 @@ def publish_photos(request:Request,creator_id:int):
  with db() as conn:
   if not conn.execute('SELECT 1 FROM creators WHERE id=?',(creator_id,)).fetchone(): raise HTTPException(404,'Creator non trovata')
   changed=conn.execute("UPDATE media SET active=1,approved=1 WHERE creator_id=? AND kind='image' AND (active<>1 OR approved<>1)",(creator_id,)).rowcount
+ return {'updated':changed}
+
+@app.post('/admin/creator/{creator_id}/videos/publish')
+async def publish_videos(request:Request,creator_id:int):
+ require(request,True); obj=await request.json(); clips=obj.get('clips',False)
+ if type(clips) is not bool: raise HTTPException(400,'Scelta non valida')
+ with db() as conn:
+  if not conn.execute('SELECT 1 FROM creators WHERE id=?',(creator_id,)).fetchone(): raise HTTPException(404,'Creator non trovata')
+  changed=conn.execute("UPDATE media SET active=1,approved=1,clip_enabled=CASE WHEN ? THEN 1 ELSE clip_enabled END WHERE creator_id=? AND kind='video'",(clips,creator_id)).rowcount
  return {'updated':changed}
 
 @app.post('/admin/media/{media_id}')
@@ -169,12 +178,22 @@ def public_creators():
   for creator in rows:
    creator['images']=['/api/image/'+str(m['id']) for m in conn.execute("SELECT id FROM media WHERE creator_id=? AND kind='image' AND active=1 AND approved=1 ORDER BY position,id",(creator['id'],))]
    creator['image']=creator['images'][0] if creator['images'] else None
+   creator['videos']=[{'src':'/api/creator-video/'+str(m['id']),'caption':m['caption'] or ''} for m in conn.execute("SELECT id,caption FROM media WHERE creator_id=? AND kind='video' AND active=1 AND approved=1 ORDER BY position,id",(creator['id'],))]
   return rows
 
 @app.get('/api/image/{media_id}')
 def public_image(media_id:int):
  with db() as conn:
   row=conn.execute("SELECT m.* FROM media m JOIN creators c ON c.id=m.creator_id WHERE m.id=? AND m.kind='image' AND m.active=1 AND m.approved=1 AND c.active=1",(media_id,)).fetchone()
+  if not row: raise HTTPException(404)
+  target=(MEDIA/row['path']).resolve()
+  if not target.is_relative_to(MEDIA.resolve()) or not target.is_file(): raise HTTPException(404)
+  return FileResponse(target,media_type=row['mime'],headers={'X-Content-Type-Options':'nosniff'})
+
+@app.get('/api/creator-video/{media_id}')
+def public_creator_video(media_id:int):
+ with db() as conn:
+  row=conn.execute("SELECT m.* FROM media m JOIN creators c ON c.id=m.creator_id WHERE m.id=? AND m.kind='video' AND m.active=1 AND m.approved=1 AND c.active=1",(media_id,)).fetchone()
   if not row: raise HTTPException(404)
   target=(MEDIA/row['path']).resolve()
   if not target.is_relative_to(MEDIA.resolve()) or not target.is_file(): raise HTTPException(404)
