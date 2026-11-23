@@ -19,6 +19,7 @@ class AdminTest(unittest.TestCase):
     self.assertEqual(c.get('/api/media/'+str(mid)).status_code,404)
     self.assertEqual(c.post('/admin/media/'+str(mid),headers=headers,json={'active':True,'approved':True,'clip_enabled':True}).status_code,200)
     self.assertEqual(len(c.get('/api/clips').json()),1);self.assertEqual(c.get('/api/media/'+str(mid)).status_code,200)
+    self.assertEqual(c.get('/api/media/'+str(mid),headers={'Range':'bytes=0-3'}).status_code,206)
     self.assertEqual(c.post('/admin/ads',headers=headers,json={'title':'Sponsor','url':'https://example.com','active':True,'approved':True}).status_code,200)
     img=c.post('/admin/upload',headers=headers,data={'creator_id':cid},files={'files':('photo.jpg',b'\xff\xd8\xff'+b'0'*50,'image/jpeg')}).json()['uploaded'][0]
     self.assertEqual(c.get('/api/image/'+str(img)).status_code,404)
