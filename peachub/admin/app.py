@@ -143,6 +143,27 @@ async def media_state(request:Request,media_id:int):
  except ValueError as exc: raise HTTPException(400,str(exc))
  return {'ok':True}
 
+@app.delete('/admin/media/{media_id}')
+def delete_media(request:Request,media_id:int):
+ require(request,True)
+ moved=None;target=None
+ try:
+  with db() as conn:
+   row=conn.execute('SELECT path FROM media WHERE id=?',(media_id,)).fetchone()
+   if not row: raise HTTPException(404,'File non trovato')
+   target=(MEDIA/row['path']).resolve()
+   if not target.is_relative_to(MEDIA.resolve()) or target==MEDIA.resolve(): raise HTTPException(400,'Percorso file non valido')
+   shared=conn.execute('SELECT 1 FROM media WHERE path=? AND id<>? LIMIT 1',(row['path'],media_id)).fetchone()
+   if target.is_file() and not shared:
+    moved=target.with_name('.deleting-'+secrets.token_hex(16))
+    os.replace(target,moved)
+   conn.execute('DELETE FROM media WHERE id=?',(media_id,))
+ except BaseException:
+  if moved and moved.exists(): os.replace(moved,target)
+  raise
+ if moved: moved.unlink(missing_ok=True)
+ return {'ok':True}
+
 @app.post('/admin/ads')
 async def save_ad(request:Request):
  require(request,True);o=await request.json()
