@@ -44,7 +44,12 @@ def detect(head):
  if head.startswith(b'\x89PNG\r\n\x1a\n'): return 'image/png','.png','image'
  if head[:6] in (b'GIF87a',b'GIF89a'): return 'image/gif','.gif','image'
  if head[:4]==b'RIFF' and head[8:12]==b'WEBP': return 'image/webp','.webp','image'
- if len(head)>=12 and head[4:8]==b'ftyp': return 'video/mp4','.mp4','video'
+ if len(head)>=12 and head[4:8]==b'ftyp':
+  brand=head[8:12]
+  if brand in (b'avif',b'avis'): return 'image/avif','.avif','image'
+  if brand in (b'heic',b'heix',b'hevc',b'hevx',b'mif1',b'msf1'): return 'image/heic','.heic','image'
+  if brand==b'qt  ': return 'video/quicktime','.mov','video'
+  return 'video/mp4','.mp4','video'
  if head[:4]==b'\x1a\x45\xdf\xa3': return 'video/webm','.webm','video'
  raise HTTPException(400,'Formato non supportato')
 
@@ -148,7 +153,11 @@ def preview(request:Request,media_id:int):
 @app.get('/api/creators')
 def public_creators():
  with db() as conn:
-  return [dict(r) for r in conn.execute("SELECT c.id,c.name,c.slug,c.bio,(SELECT '/api/image/'||m.id FROM media m WHERE m.creator_id=c.id AND m.kind='image' AND m.active=1 AND m.approved=1 ORDER BY m.position,m.id LIMIT 1) AS image FROM creators c WHERE c.active=1 ORDER BY c.name")]
+  rows=[dict(r) for r in conn.execute("SELECT id,name,slug,bio,onlyfans_url,instagram_url,telegram_url FROM creators WHERE active=1 ORDER BY name")]
+  for creator in rows:
+   creator['images']=['/api/image/'+str(m['id']) for m in conn.execute("SELECT id FROM media WHERE creator_id=? AND kind='image' AND active=1 AND approved=1 ORDER BY position,id",(creator['id'],))]
+   creator['image']=creator['images'][0] if creator['images'] else None
+  return rows
 
 @app.get('/api/image/{media_id}')
 def public_image(media_id:int):
