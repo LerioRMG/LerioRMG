@@ -23,6 +23,7 @@ FILES={
 ADDITIONAL_BASE={'admin/app.py':'3f712b9b0eb9bd4b76e162c37f5e17280634b8dc','admin/index.html':'1b395b881a96d69803379f137d685cc69e738336','tools/catalogue.py':'91a3879eeb8153f4c9871b7117933fd0bc1adf02','tools/schema.sql':'e014172db9791ebd4aff69b327802c553ebb65eb','tools/import_staged.py':'d07df30e651fd8e0afb8b0e7c13bbffea18c8863','index.html':'8b5a547ca0144d8712e045393b587bd7ce6533a5','clips.html':'d25fa6c284453e09491ccf71cabcfcf6c0d3c54a'}
 LATEST_BASE={'admin/app.py':'3f6dfa13f9e06acc2d279656b6a6906938edb855','admin/index.html':'56e8c530d81e0b9dda0a57d2829bb95698c2a2d2','tools/catalogue.py':'3a40d670fb784b3dc47adcd1600219d2235a73f8','tools/schema.sql':'e014172db9791ebd4aff69b327802c553ebb65eb','tools/import_staged.py':'d07df30e651fd8e0afb8b0e7c13bbffea18c8863','index.html':'a11d9466b5529f477062bd8797e4602a4f283e6b','clips.html':'64f9c8c990b68beb06d8bc98f49bfbccabf889a7'}
 PROFILE_BASE={'admin/app.py':'fe973bf32361ec57e90a10818b81aa7ff761fa57','admin/index.html':'c09f6d11de0e3dd7a3033f935aafeb4e9ca89c56','index.html':'8dabc76941af72dad6921793b9f7df673c052190'}
+CLIPS_BASE={'clips.html':'262a23e0095626a533bd149294a6d775b90d8bbd','index.html':'29af8d91e31178e2ae87b0f9234018f60ea568b4'}
 def sha(path): return subprocess.check_output(['git','hash-object',str(path)],text=True).strip()
 def command(*args, **kwargs): return subprocess.run(args,check=True,**kwargs)
 
@@ -51,7 +52,7 @@ def main():
   incoming=SRC/src
   if not incoming.is_file() or not target.is_file():raise SystemExit('File mancante: '+str(target)+'. Nessuna modifica effettuata.')
   current=sha(target);new=sha(incoming)
-  if current not in (expected,ADDITIONAL_BASE.get(src),LATEST_BASE.get(src),PROFILE_BASE.get(src),new):raise SystemExit('File online modificato rispetto alla versione prevista: '+str(target)+'. Nessuna modifica effettuata.')
+  if current not in (expected,ADDITIONAL_BASE.get(src),LATEST_BASE.get(src),PROFILE_BASE.get(src),CLIPS_BASE.get(src),new):raise SystemExit('File online modificato rispetto alla versione prevista: '+str(target)+'. Nessuna modifica effettuata.')
   if current!=new:changes.append((src,target,incoming))
  try:
   source_db=subprocess.check_output(['php','-r','require "/var/www/fanslist/config.php"; echo DB_PATH;'],text=True).strip()
