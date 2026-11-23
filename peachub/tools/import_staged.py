@@ -14,7 +14,7 @@ def import_staged(stage_dir, db_path, media_root):
    key='fanslist:'+str(int(c['source_id']))
    row=db.execute('SELECT id FROM creators WHERE source_key=?',(key,)).fetchone()
    if row: continue
-   cursor=db.execute('INSERT INTO creators(source_key,name,slug,username,bio,onlyfans_url,instagram_url,telegram_url) VALUES(?,?,?,?,?,?,?,?)',(key,c['name'],c['slug'],c.get('username'),c.get('bio'),c.get('onlyfans_url'),c.get('instagram_url'),c.get('telegram_url')))
+   cursor=db.execute('INSERT INTO creators(source_key,name,slug,username,bio,excerpt,about,tags,onlyfans_url,instagram_url,telegram_url) VALUES(?,?,?,?,?,?,?,?,?,?,?)',(key,c['name'],c['slug'],c.get('username'),c.get('bio'),c.get('excerpt') or '',c.get('about') or '',c.get('tags') or '',c.get('onlyfans_url'),c.get('instagram_url'),c.get('telegram_url')))
    creator_id=cursor.lastrowid
    for image in c.get('images',[]):
     source=(stage_dir/image).resolve()

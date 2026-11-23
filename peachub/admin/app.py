@@ -84,8 +84,10 @@ async def save_creator(request:Request):
  with db() as conn:
   cid=int(obj.get('id') or 0)
   if cid:
-   cur=conn.execute('UPDATE creators SET name=?,slug=?,bio=?,username=?,onlyfans_url=?,instagram_url=?,telegram_url=? WHERE id=?',(name,slug,str(obj.get('bio',''))[:10000],str(obj.get('username',''))[:120],str(obj.get('onlyfans_url',''))[:2048],str(obj.get('instagram_url',''))[:2048],str(obj.get('telegram_url',''))[:2048],cid))
-   if not cur.rowcount: raise HTTPException(404,'Creator non trovata')
+   previous=conn.execute('SELECT * FROM creators WHERE id=?',(cid,)).fetchone()
+   if not previous: raise HTTPException(404,'Creator non trovata')
+   def field(key,limit): return str(obj.get(key,previous[key] or '') or '')[:limit]
+   conn.execute('UPDATE creators SET name=?,slug=?,bio=?,excerpt=?,about=?,tags=?,username=?,onlyfans_url=?,instagram_url=?,telegram_url=? WHERE id=?',(name,slug,field('bio',10000),field('excerpt',2000),field('about',20000),field('tags',500),field('username',120),field('onlyfans_url',2048),field('instagram_url',2048),field('telegram_url',2048),cid))
   else: cid=conn.execute('INSERT INTO creators(name,slug,bio) VALUES(?,?,?)',(name,slug,str(obj.get('bio',''))[:10000])).lastrowid
   try: set_creator_state(conn,cid,active=bool(obj.get('active')),clips_enabled=bool(obj.get('clips_enabled')),boost=int(obj.get('boost',1)))
   except ValueError as exc: raise HTTPException(400,str(exc))
@@ -112,13 +114,23 @@ async def upload(request:Request,creator_id:int=Form(...),files:list[UploadFile]
    finally: await f.close()
  return {'uploaded':uploaded}
 
+@app.post('/admin/creator/{creator_id}/photos/publish')
+def publish_photos(request:Request,creator_id:int):
+ require(request,True)
+ with db() as conn:
+  if not conn.execute('SELECT 1 FROM creators WHERE id=?',(creator_id,)).fetchone(): raise HTTPException(404,'Creator non trovata')
+  changed=conn.execute("UPDATE media SET active=1,approved=1 WHERE creator_id=? AND kind='image' AND (active<>1 OR approved<>1)",(creator_id,)).rowcount
+ return {'updated':changed}
+
 @app.post('/admin/media/{media_id}')
 async def media_state(request:Request,media_id:int):
  require(request,True);o=await request.json()
  try:
   with db() as conn:
+   previous=conn.execute('SELECT caption,tags FROM media WHERE id=?',(media_id,)).fetchone()
+   if not previous: raise ValueError('Media non trovato')
    set_media_state(conn,media_id,active=bool(o.get('active')),approved=bool(o.get('approved')),clip_enabled=bool(o.get('clip_enabled')))
-   conn.execute('UPDATE media SET caption=? WHERE id=?',(str(o.get('caption',''))[:2000],media_id))
+   conn.execute('UPDATE media SET caption=?,tags=? WHERE id=?',(str(o.get('caption',previous['caption'] or '') or '')[:2000],str(o.get('tags',previous['tags'] or '') or '')[:500],media_id))
  except ValueError as exc: raise HTTPException(400,str(exc))
  return {'ok':True}
 
@@ -153,7 +165,7 @@ def preview(request:Request,media_id:int):
 @app.get('/api/creators')
 def public_creators():
  with db() as conn:
-  rows=[dict(r) for r in conn.execute("SELECT id,name,slug,bio,onlyfans_url,instagram_url,telegram_url FROM creators WHERE active=1 ORDER BY name")]
+  rows=[dict(r) for r in conn.execute("SELECT id,name,slug,bio,excerpt,about,tags,onlyfans_url,instagram_url,telegram_url FROM creators WHERE active=1 ORDER BY name")]
   for creator in rows:
    creator['images']=['/api/image/'+str(m['id']) for m in conn.execute("SELECT id FROM media WHERE creator_id=? AND kind='image' AND active=1 AND approved=1 ORDER BY position,id",(creator['id'],))]
    creator['image']=creator['images'][0] if creator['images'] else None
@@ -175,7 +187,7 @@ def clips():
  for item in build_feed(creators,items,ads,seed=int(time.time()//3600),limit=30):
   if item['type']=='clip':
    clip=item['item'];creator=next(c for c in creators if c['id']==clip['creator_id'])
-   result.append({'id':clip['id'],'src':'/api/media/'+str(clip['id']),'creator':creator['name'],'caption':clip['caption'],'profile':'/#/creator/'+creator['slug'],'instagram':creator.get('instagram_url'),'telegram':creator.get('telegram_url'),'onlyfans':creator.get('onlyfans_url'),'approved':True})
+   result.append({'id':clip['id'],'src':'/api/media/'+str(clip['id']),'creator':creator['name'],'caption':clip['caption'],'tags':[t.strip() for t in str(clip['tags'] or '').split(',') if t.strip()][:8],'profile':'/#/creator/'+creator['slug'],'instagram':creator.get('instagram_url'),'telegram':creator.get('telegram_url'),'onlyfans':creator.get('onlyfans_url'),'approved':True})
   else: result.append({'type':'ad','title':item['item']['title'],'url':item['item']['url']})
  return result
 
@@ -190,4 +202,4 @@ def public_media(media_id:int):
 
 @app.get('/admin',response_class=HTMLResponse)
 @app.get('/admin/',response_class=HTMLResponse)
-def admin(): return (Path(__file__).parent/'index.html').read_text(encoding='utf-8')
+def admin(): return HTMLResponse((Path(__file__).parent/'index.html').read_text(encoding='utf-8'),headers={'Cache-Control':'no-store'})

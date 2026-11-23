@@ -11,6 +11,12 @@ def open_catalogue(path):
     db.execute('PRAGMA foreign_keys=ON')
     db.execute('PRAGMA busy_timeout=5000')
     db.executescript(SCHEMA.read_text(encoding='utf-8'))
+    # Additive upgrades preserve profiles, captions, selections and existing media.
+    for table, column in [('creators','excerpt'),('creators','about'),('creators','tags'),('media','tags')]:
+        if column not in {row['name'] for row in db.execute('PRAGMA table_info('+table+')')}:
+            try: db.execute("ALTER TABLE "+table+" ADD COLUMN "+column+" TEXT NOT NULL DEFAULT ''")
+            except sqlite3.OperationalError:
+                if column not in {row['name'] for row in db.execute('PRAGMA table_info('+table+')')}: raise
     return db
 
 def set_creator_state(db, creator_id, *, active, clips_enabled, boost):
@@ -25,7 +31,7 @@ def add_media(db, creator_id, path, mime, kind, caption=''):
         raise ValueError('File non valido')
     if not mime.startswith(kind+'/'): raise ValueError('Tipo di file non corrispondente')
     with db:
-        return db.execute('INSERT INTO media(creator_id,path,mime,kind,caption) VALUES(?,?,?,?,?)',(creator_id,path,mime,kind,caption)).lastrowid
+        return db.execute('INSERT INTO media(creator_id,path,mime,kind,caption,active,approved) VALUES(?,?,?,?,?,?,?)',(creator_id,path,mime,kind,caption,1 if kind=='image' else 0,1 if kind=='image' else 0)).lastrowid
 
 def set_media_state(db, media_id, *, active, approved, clip_enabled):
     if any(type(x) is not bool for x in (active,approved,clip_enabled)): raise ValueError('Stato non valido')

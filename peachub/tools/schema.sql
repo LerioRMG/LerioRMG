@@ -1,7 +1,7 @@
 PRAGMA foreign_keys = ON;
 CREATE TABLE IF NOT EXISTS creators (
  id INTEGER PRIMARY KEY, source_key TEXT UNIQUE, name TEXT NOT NULL,
- slug TEXT NOT NULL UNIQUE, username TEXT, bio TEXT, onlyfans_url TEXT,
+ slug TEXT NOT NULL UNIQUE, username TEXT, bio TEXT, excerpt TEXT NOT NULL DEFAULT '', about TEXT NOT NULL DEFAULT '', tags TEXT NOT NULL DEFAULT '', onlyfans_url TEXT,
  instagram_url TEXT, telegram_url TEXT, active INTEGER NOT NULL DEFAULT 0 CHECK(active IN(0,1)),
  clips_enabled INTEGER NOT NULL DEFAULT 0 CHECK(clips_enabled IN(0,1)),
  boost INTEGER NOT NULL DEFAULT 1 CHECK(boost BETWEEN 1 AND 5), created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
@@ -12,7 +12,7 @@ CREATE TABLE IF NOT EXISTS media (
  active INTEGER NOT NULL DEFAULT 0 CHECK(active IN(0,1)),
  approved INTEGER NOT NULL DEFAULT 0 CHECK(approved IN(0,1)),
  clip_enabled INTEGER NOT NULL DEFAULT 0 CHECK(clip_enabled IN(0,1)),
- caption TEXT NOT NULL DEFAULT '', position INTEGER NOT NULL DEFAULT 0,
+ caption TEXT NOT NULL DEFAULT '', tags TEXT NOT NULL DEFAULT '', position INTEGER NOT NULL DEFAULT 0,
  created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
 CREATE INDEX IF NOT EXISTS media_creator_active ON media(creator_id,active,clip_enabled);
