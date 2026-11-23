@@ -44,6 +44,8 @@ def nginx_target():
    if re.search(r'\bserver_name\s+[^;]*\bthepeachub\.com\b',block) and re.search(r'\blisten\s+(?:\[[^]]+\]:)?443\b',block):found.append((path,text,end,block))
  if len(found)!=1:raise ValueError('Configurazione HTTPS Peachub non identificata in modo univoco; nessuna modifica effettuata.')
  path,text,end,block=found[0]
+ root=re.search(r'(?m)^\s*root\s+([^;]+);',block)
+ if not root or root.group(1).strip()!='/var/www/peachub':raise ValueError('La root HTTPS di Peachub è diversa dal previsto; nessuna modifica effettuata.')
  if re.search(r'location\s+(?:\^~\s+|=\s+)?/(?:admin|api)(?:/|\s|\{)',block):raise ValueError('Esistono già regole admin o API: nessuna modifica effettuata.')
  return path,text,end
 
