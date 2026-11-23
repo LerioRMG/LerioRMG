@@ -13,7 +13,7 @@ next:'<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 4v15m0 0-6-6m6 6 
 };
 const FEED=document.getElementById("feed"),NOTICE=document.getElementById("notice");
 let clips=[],active=-1,observer=null,previewUrl=null,loading=false;
-const safeUrl=(value)=>{try{const u=new URL(value,location.href);return u.protocol==="https:"||u.origin===location.origin&&u.protocol==="http:"?u.href:null}catch{return null}};
+const safeUrl=(value)=>{if(typeof value!=="string"||!value.trim())return null;try{const u=new URL(value,location.href);return u.protocol==="https:"||u.origin===location.origin&&u.protocol==="http:"?u.href:null}catch{return null}};
 const escapeHTML=(v)=>String(v||"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
 const socialDetails={instagram:["Instagram","/instagram.svg"],x:["X","/x.svg"],telegram:["Telegram","/telegram.svg"],onlyfans:["OnlyFans","https://commons.wikimedia.org/wiki/Special:FilePath/Tabler-icons%20brand-onlyfans.svg"],profile:["Profilo",null]};
 const links=(c)=>["instagram","x","telegram","onlyfans","profile"].filter(k=>safeUrl(c[k])).map(k=>{const m=socialDetails[k];return '<a class="social-link social-'+k+'" target="_blank" rel="noopener noreferrer" href="'+escapeHTML(safeUrl(c[k]))+'">'+(m[1]?'<img src="'+m[1]+'" alt="" width="19" height="19">':'')+'<span>'+m[0]+'</span></a>'}).join("");
