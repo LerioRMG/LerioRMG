@@ -79,7 +79,7 @@ async def save_creator(request:Request):
  with db() as conn:
   cid=int(obj.get('id') or 0)
   if cid:
-   cur=conn.execute('UPDATE creators SET name=?,slug=?,bio=? WHERE id=?',(name,slug,str(obj.get('bio',''))[:10000],cid))
+   cur=conn.execute('UPDATE creators SET name=?,slug=?,bio=?,username=?,onlyfans_url=?,instagram_url=?,telegram_url=? WHERE id=?',(name,slug,str(obj.get('bio',''))[:10000],str(obj.get('username',''))[:120],str(obj.get('onlyfans_url',''))[:2048],str(obj.get('instagram_url',''))[:2048],str(obj.get('telegram_url',''))[:2048],cid))
    if not cur.rowcount: raise HTTPException(404,'Creator non trovata')
   else: cid=conn.execute('INSERT INTO creators(name,slug,bio) VALUES(?,?,?)',(name,slug,str(obj.get('bio',''))[:10000])).lastrowid
   try: set_creator_state(conn,cid,active=bool(obj.get('active')),clips_enabled=bool(obj.get('clips_enabled')),boost=int(obj.get('boost',1)))
@@ -111,7 +111,9 @@ async def upload(request:Request,creator_id:int=Form(...),files:list[UploadFile]
 async def media_state(request:Request,media_id:int):
  require(request,True);o=await request.json()
  try:
-  with db() as conn: set_media_state(conn,media_id,active=bool(o.get('active')),approved=bool(o.get('approved')),clip_enabled=bool(o.get('clip_enabled')))
+  with db() as conn:
+   set_media_state(conn,media_id,active=bool(o.get('active')),approved=bool(o.get('approved')),clip_enabled=bool(o.get('clip_enabled')))
+   conn.execute('UPDATE media SET caption=? WHERE id=?',(str(o.get('caption',''))[:2000],media_id))
  except ValueError as exc: raise HTTPException(400,str(exc))
  return {'ok':True}
 
