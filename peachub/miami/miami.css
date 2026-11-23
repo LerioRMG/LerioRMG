@@ -14,3 +14,6 @@ html,body{background:#0b0c10!important}body:before,body:after{display:block!impo
 
 /* Sagome leggere sui lati, senza sfondo illustrato. */
 body:before,body:after{top:auto;bottom:0;height:min(75vh,720px);width:clamp(85px,15vw,235px);background:url(/miami/palm.svg) bottom center/contain no-repeat;opacity:.32;filter:brightness(2.2) saturate(.7);mask-image:none;-webkit-mask-image:none;animation:none!important}body:after{transform:scaleX(-1)}@media(max-width:699px){body:before,body:after{width:65px;opacity:.22}}
+
+/* Palma dettagliata fornita dalla redazione. */
+body:before,body:after{background-image:url(/miami/palm-real.webp);filter:none;opacity:.36}@media(max-width:699px){body:before,body:after{width:80px;opacity:.22}}
