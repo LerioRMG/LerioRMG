@@ -17,12 +17,13 @@ def build_feed(creators, clips, ads, seed=0, limit=30, ad_interval=6):
         rng.shuffle(values)
     counts = defaultdict(int)
     last = None
+    streak = 0
     output = []
     ad_pool = [a for a in ads if a.get('active') and a.get('approved')]
     rng.shuffle(ad_pool)
     ad_index = 0
     while pool and len(output) < limit:
-        choices = [cid for cid in pool if cid != last] or list(pool)
+        choices = ([cid for cid in pool if cid != last] or list(pool)) if streak >= 2 else list(pool)
         def score(cid):
             try: weight = max(1, min(5, int(eligible[cid].get('boost', 1))))
             except (ValueError, TypeError): weight = 1
@@ -32,6 +33,7 @@ def build_feed(creators, clips, ads, seed=0, limit=30, ad_interval=6):
         if not pool[cid]: del pool[cid]
         counts[cid] += 1
         output.append({'type': 'clip', 'item': clip})
+        streak = streak + 1 if cid == last else 1
         last = cid
         if ad_interval > 0 and sum(1 for i in output if i['type']=='clip') % ad_interval == 0 and ad_index < len(ad_pool) and len(output) < limit:
             output.append({'type': 'ad', 'item': ad_pool[ad_index]})
