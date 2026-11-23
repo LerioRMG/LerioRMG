@@ -62,6 +62,7 @@ def main():
  (BACKUP/'nginx.conf').write_text(original)
  APP.mkdir(mode=0o755);STATE.mkdir(mode=0o750)
  (APP/'admin').mkdir();(STATE/'media').mkdir()
+ site_touched=False
  try:
   for name in ('catalogue.py','schema.sql','feed_order.py','import_staged.py','copy_from_fanslist.py'):shutil.copy2(SRC/'tools'/name,APP/name)
   for name in ('app.py','index.html'):shutil.copy2(SRC/'admin'/name,APP/'admin'/name)
@@ -86,17 +87,19 @@ def main():
    except OSError:time.sleep(.3)
   if not healthy:raise ValueError('Il servizio Peachub non risponde; non viene pubblicato.')
   rules='''\n    # PEACHUB ADMIN - dedicated localhost service\n    location = /admin { return 308 /admin/; }\n    location ^~ /admin/ { client_max_body_size 210m; proxy_pass http://127.0.0.1:18881; proxy_set_header Host $host; proxy_set_header X-Forwarded-Proto $scheme; proxy_read_timeout 300s; }\n    location ^~ /api/ { proxy_pass http://127.0.0.1:18881; proxy_set_header Host $host; proxy_set_header X-Forwarded-Proto $scheme; proxy_read_timeout 300s; }\n'''
+  site_touched=True
   for f in BASE:shutil.copy2(SRC/f,WEB/f)
   config.write_text(original[:end]+rules+original[end:])
-  try:run('nginx','-t');run('systemctl','reload','nginx')
-  except BaseException:
-   config.write_text(original)
-   for f in BASE:shutil.copy2(BACKUP/f,WEB/f)
-   run('nginx','-t');run('systemctl','reload','nginx');raise
+  run('nginx','-t');run('systemctl','reload','nginx')
   print('Installazione completata: https://thepeachub.com/admin/')
   print('I profili importati e le foto sono inizialmente disattivati; attivali dal pannello.')
   print('Backup:',BACKUP)
  except BaseException:
+  if site_touched:
+   config.write_text(original)
+   for f in BASE: shutil.copy2(BACKUP/f,WEB/f)
+   subprocess.run(['nginx','-t'],check=False)
+   subprocess.run(['systemctl','reload','nginx'],check=False)
   if SERVICE.exists():
    subprocess.run(['systemctl','disable','--now','peachub-admin.service'],check=False)
    SERVICE.unlink(missing_ok=True)
