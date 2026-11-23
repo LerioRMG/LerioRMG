@@ -24,3 +24,5 @@ body:before,body:after{width:clamp(180px,27vw,480px);height:94dvh;opacity:.36}
 
 /* Cornice tropicale per schermi ampi: sagome grandi e ancorate ai margini. */
 @media(min-width:1000px){body:before,body:after{width:clamp(330px,32vw,600px);height:110dvh;bottom:-10dvh;background-size:auto 100%;background-position:center bottom;opacity:.25}body:before{left:clamp(-110px,-7vw,-55px)}body:after{right:clamp(-110px,-7vw,-55px)}}
+
+.miami-collection-video{margin:28px 0 38px}.miami-collection-video>p{color:#b3b4be}.miami-video-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:20px}.miami-video-card{min-width:0;padding:16px;border:1px solid #303137;border-radius:12px;background:#15161a}.miami-video-card h3{font-size:17px;margin:6px 0 12px}.miami-video-card .video-wrap{aspect-ratio:16/9;background:#09090d;border-radius:8px;overflow:hidden}.miami-video-card iframe{width:100%;height:100%;border:0}.miami-video-card a{display:inline-block;margin-top:10px;color:#eab2c9;font-size:13px}@media(max-width:699px){.miami-video-grid{grid-template-columns:1fr}}
