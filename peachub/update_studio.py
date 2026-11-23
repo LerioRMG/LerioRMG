@@ -26,6 +26,7 @@ PROFILE_BASE={'admin/app.py':'fe973bf32361ec57e90a10818b81aa7ff761fa57','admin/i
 CLIPS_BASE={'clips.html':'262a23e0095626a533bd149294a6d775b90d8bbd','index.html':'29af8d91e31178e2ae87b0f9234018f60ea568b4'}
 RAILS_BASE={'clips.html':'98a1d9416a04c99724f062198190ba4dd8a6bf7d','index.html':'c9d0373b5b87be99d3dfd9b1945c4a8401bebea1'}
 SIZE_BASE={'index.html':'c9d0373b5b87be99d3dfd9b1945c4a8401bebea1','clips.html':'29067a49ccf5a0f8d5402d89100ef598c70a23f3'}
+SOCIAL_BASE={'clips.html':'35925740f83f063379b88e76391f3a0bb94f2a89','index.html':'f8d78cd1485f9a01cbe78b760eb959df2345c1c2'}
 def sha(path): return subprocess.check_output(['git','hash-object',str(path)],text=True).strip()
 def command(*args, **kwargs): return subprocess.run(args,check=True,**kwargs)
 
@@ -54,7 +55,7 @@ def main():
   incoming=SRC/src
   if not incoming.is_file() or not target.is_file():raise SystemExit('File mancante: '+str(target)+'. Nessuna modifica effettuata.')
   current=sha(target);new=sha(incoming)
-  if current not in (expected,ADDITIONAL_BASE.get(src),LATEST_BASE.get(src),PROFILE_BASE.get(src),CLIPS_BASE.get(src),RAILS_BASE.get(src),SIZE_BASE.get(src),new):raise SystemExit('File online modificato rispetto alla versione prevista: '+str(target)+'. Nessuna modifica effettuata.')
+  if current not in (expected,ADDITIONAL_BASE.get(src),LATEST_BASE.get(src),PROFILE_BASE.get(src),CLIPS_BASE.get(src),RAILS_BASE.get(src),SIZE_BASE.get(src),SOCIAL_BASE.get(src),new):raise SystemExit('File online modificato rispetto alla versione prevista: '+str(target)+'. Nessuna modifica effettuata.')
   if current!=new:changes.append((src,target,incoming))
  try:
   source_db=subprocess.check_output(['php','-r','require "/var/www/fanslist/config.php"; echo DB_PATH;'],text=True).strip()
