@@ -175,7 +175,7 @@ def clips():
  for item in build_feed(creators,items,ads,seed=int(time.time()//3600),limit=30):
   if item['type']=='clip':
    clip=item['item'];creator=next(c for c in creators if c['id']==clip['creator_id'])
-   result.append({'id':clip['id'],'src':'/api/media/'+str(clip['id']),'creator':creator['name'],'caption':clip['caption'],'profile':'/#/creator/'+creator['slug'],'instagram':creator.get('instagram_url'),'telegram':creator.get('telegram_url'),'onlyfans':creator.get('onlyfans_url'),'approved':True,'explicit':False})
+   result.append({'id':clip['id'],'src':'/api/media/'+str(clip['id']),'creator':creator['name'],'caption':clip['caption'],'profile':'/#/creator/'+creator['slug'],'instagram':creator.get('instagram_url'),'telegram':creator.get('telegram_url'),'onlyfans':creator.get('onlyfans_url'),'approved':True})
   else: result.append({'type':'ad','title':item['item']['title'],'url':item['item']['url']})
  return result
 
