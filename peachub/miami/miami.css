@@ -17,3 +17,7 @@ body:before,body:after{top:auto;bottom:0;height:min(75vh,720px);width:clamp(85px
 
 /* Palma dettagliata fornita dalla redazione. */
 body:before,body:after{background-image:url(/miami/palm-real.webp);filter:none;opacity:.36}@media(max-width:699px){body:before,body:after{width:80px;opacity:.22}}
+
+/* Palme più grandi, mantenute ai bordi. */
+body:before,body:after{width:clamp(180px,27vw,480px);height:94dvh;opacity:.36}
+@media(max-width:699px){body:before,body:after{width:clamp(115px,32vw,190px);height:75dvh;opacity:.20}}
